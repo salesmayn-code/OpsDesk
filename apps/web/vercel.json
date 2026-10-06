@@ -1,5 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rootDirectory": "apps/web",
   "buildCommand": "pnpm --filter @opsdesk/web... build"
 }
