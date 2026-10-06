@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Security: Next pins postcss 8.4.x, which has two high advisories (fixed in 8.5.18+).
+overrides:
+  postcss@<8.5.28: 8.5.28
+
+allowBuilds:
+  esbuild: true
+  '@nestjs/core': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@swc/core': false
+  '@scarf/scarf': false
+  msgpackr-extract: true
+  prisma: true
+  unrs-resolver: true

@@ -1,0 +1,10 @@
+{
+  "extends": "@opsdesk/config/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["tests", "playwright.config.ts"]
+}

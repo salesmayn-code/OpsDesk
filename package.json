@@ -1,0 +1,41 @@
+{
+  "name": "opsdesk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OpsDesk — IT Service Management & Infrastructure Operations (NestJS, Next.js, Prisma, PostgreSQL)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salesmayn-code/OpsDesk.git"
+  },
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "pnpm --filter @opsdesk/e2e test:e2e",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test:unit && pnpm build",
+    "db:generate": "pnpm --filter @opsdesk/api db:generate",
+    "db:migrate": "pnpm --filter @opsdesk/api db:migrate",
+    "db:seed": "pnpm --filter @opsdesk/api db:seed",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "@opsdesk/config/tsconfig/node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": false,
+    "types": ["node", "jest", "multer"]
+  },
+  "include": ["src", "test", "prisma"],
+  "exclude": ["node_modules", "dist"]
+}

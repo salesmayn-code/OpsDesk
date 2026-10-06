@@ -1,0 +1,92 @@
+@import 'tailwindcss';
+
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --border: #e2e6eb;
+  --text: #111827;
+  --text-muted: #5b6472;
+  --primary: #2f5bea;
+  --primary-hover: #2449c4;
+
+  /* Semantic status palette (UI/UX §2.1) — every pair is >= 4.5:1 */
+  --status-neutral-bg: #eef0f3;
+  --status-neutral-fg: #374151;
+  --status-info-bg: #e6eeff;
+  --status-info-fg: #1e40af;
+  --status-progress-bg: #e8f1fb;
+  --status-progress-fg: #0b5cad;
+  --status-waiting-bg: #fff4e0;
+  --status-waiting-fg: #8a4b00;
+  --status-warning-bg: #fff1e6;
+  --status-warning-fg: #9a3412;
+  --status-danger-bg: #fdecec;
+  --status-danger-fg: #b42318;
+  --status-success-bg: #e7f6ec;
+  --status-success-fg: #166534;
+  --status-muted-bg: #f3f4f6;
+  /* Darkened from #6B7280: axe measured 4.4:1 on the muted pill background. */
+  --status-muted-fg: #4b5563;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+
+  --color-status-neutral-bg: var(--status-neutral-bg);
+  --color-status-neutral-fg: var(--status-neutral-fg);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-fg: var(--status-info-fg);
+  --color-status-progress-bg: var(--status-progress-bg);
+  --color-status-progress-fg: var(--status-progress-fg);
+  --color-status-waiting-bg: var(--status-waiting-bg);
+  --color-status-waiting-fg: var(--status-waiting-fg);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-fg: var(--status-warning-fg);
+  --color-status-danger-bg: var(--status-danger-bg);
+  --color-status-danger-fg: var(--status-danger-fg);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-fg: var(--status-success-fg);
+  --color-status-muted-bg: var(--status-muted-bg);
+  --color-status-muted-fg: var(--status-muted-fg);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, 'Cascadia Mono', monospace;
+
+  --text-display: 24px;
+  --text-display--line-height: 32px;
+  --text-title: 18px;
+  --text-title--line-height: 28px;
+
+  --radius-control: 6px;
+  --radius-card: 8px;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
