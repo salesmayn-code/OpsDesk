@@ -10,10 +10,14 @@ export class MailService {
   private readonly from: string;
 
   constructor(config: ConfigService<Env, true>) {
+    const port = config.get('SMTP_PORT', { infer: true });
+    const user = config.get('SMTP_USER', { infer: true });
+    const pass = config.get('SMTP_PASS', { infer: true });
     this.transporter = nodemailer.createTransport({
       host: config.get('SMTP_HOST', { infer: true }),
-      port: config.get('SMTP_PORT', { infer: true }),
-      secure: false,
+      port,
+      secure: port === 465,
+      ...(user && pass ? { auth: { user, pass } } : {}),
     });
     this.from = config.get('SMTP_FROM', { infer: true });
   }

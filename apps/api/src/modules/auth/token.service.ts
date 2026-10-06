@@ -66,10 +66,11 @@ export class TokenService {
   }
 
   private baseCookie(): CookieOptions {
+    const sameSite = this.config.get('COOKIE_SAMESITE', { infer: true });
     return {
       httpOnly: true,
-      secure: this.config.get('NODE_ENV', { infer: true }) === 'production',
-      sameSite: 'lax',
+      secure: this.config.get('NODE_ENV', { infer: true }) === 'production' || sameSite === 'none',
+      sameSite,
     };
   }
 
