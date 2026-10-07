@@ -7,13 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
 import { formatDateTime } from '@/lib/format';
 
-function formatDiffValue(value: unknown): string {
+/** "IN_PROGRESS" → "In progress"; leaves free text untouched. */
+function humanizeValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  const text = String(value);
+  if (/^[A-Z][A-Z0-9_]*$/.test(text)) {
+    return text.charAt(0) + text.slice(1).toLowerCase().replaceAll('_', ' ');
+  }
+  return text;
 }
 
-/** Side-by-side changed-field list; falls back to metadata for non-diff rows. */
+/** Field-level transition tags for changed rows; metadata list otherwise. */
 function DiffView({ row }: { row: AuditLogRow }) {
   const before = (row.before ?? {}) as Record<string, unknown>;
   const after = (row.after ?? {}) as Record<string, unknown>;
@@ -21,30 +26,40 @@ function DiffView({ row }: { row: AuditLogRow }) {
     (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]),
   );
 
+  if (keys.length === 0) {
+    const entries = Object.entries((row.metadata ?? {}) as Record<string, unknown>);
+    if (entries.length === 0) {
+      return <p className="mt-2 text-xs text-muted-foreground">No details recorded.</p>;
+    }
+    return (
+      <dl className="mt-2 max-w-xl space-y-1 text-xs">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex flex-wrap gap-2">
+            <dt className="font-mono text-muted-foreground">{key}</dt>
+            <dd>{humanizeValue(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
   return (
-    <>
-      {keys.length > 0 ? (
-        <ul className="mt-2 max-w-lg space-y-1 text-xs">
-          {keys.map((key) => (
-            <li key={key}>
-              <span className="font-mono">{key}</span>:{' '}
-              <span className="text-status-danger-fg line-through">
-                {formatDiffValue(before[key])}
-              </span>{' '}
-              <span aria-hidden="true">→</span>{' '}
-              <span className="text-status-success-fg">{formatDiffValue(after[key])}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <pre className="mt-2 max-w-lg overflow-x-auto rounded bg-card-muted p-2 text-xs">
-        {JSON.stringify(
-          keys.length > 0 ? { before, after } : (row.metadata ?? {}),
-          null,
-          2,
-        )}
-      </pre>
-    </>
+    <ul className="mt-2 max-w-xl space-y-1.5 text-xs">
+      {keys.map((key) => (
+        <li key={key} className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-muted-foreground">{key}</span>
+          <span className="rounded bg-status-danger-bg px-1.5 py-0.5 text-status-danger-fg line-through">
+            {humanizeValue(before[key])}
+          </span>
+          <span aria-hidden="true" className="text-muted-foreground">
+            →
+          </span>
+          <span className="rounded bg-status-success-bg px-1.5 py-0.5 text-status-success-fg">
+            {humanizeValue(after[key])}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

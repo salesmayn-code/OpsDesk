@@ -80,47 +80,64 @@ export class DashboardService {
 
   async agent(actor: AuthUser) {
     const teamFilter = { teamId: { in: actor.teamIds } };
-    const [assignedToMe, unassignedInTeams, criticalHigh, slaAtRisk, slaBreached, waiting, attention] =
-      await Promise.all([
-        this.prisma.ticket.count({
-          where: { assigneeId: actor.id, status: { in: OPEN_STATUSES } },
-        }),
-        this.prisma.ticket.count({
-          where: { ...teamFilter, assigneeId: null, status: { in: OPEN_STATUSES } },
-        }),
-        this.prisma.ticket.count({
-          where: {
-            assigneeId: actor.id,
-            priority: { in: ['CRITICAL', 'HIGH'] },
-            status: { in: OPEN_STATUSES },
-          },
-        }),
-        this.prisma.ticket.count({
-          where: {
-            OR: [{ assigneeId: actor.id }, teamFilter],
-            slaState: 'AT_RISK',
-            status: { in: OPEN_STATUSES },
-          },
-        }),
-        this.prisma.ticket.count({
-          where: {
-            OR: [{ assigneeId: actor.id }, teamFilter],
-            slaState: 'BREACHED',
-            status: { in: OPEN_STATUSES },
-          },
-        }),
-        this.prisma.ticket.count({
-          where: { assigneeId: actor.id, status: 'WAITING_FOR_USER' },
-        }),
-        this.prisma.ticket.findMany({
-          where: {
-            OR: [{ assigneeId: actor.id }, teamFilter],
-            status: { in: OPEN_STATUSES },
-          },
-          select: TICKET_LIST_SELECT,
-          take: 100,
-        }),
-      ]);
+    const [
+      assignedToMe,
+      unassignedInTeams,
+      criticalHigh,
+      slaAtRisk,
+      slaBreached,
+      slaOnTrack,
+      waiting,
+      attention,
+    ] = await Promise.all([
+      this.prisma.ticket.count({
+        where: { assigneeId: actor.id, status: { in: OPEN_STATUSES } },
+      }),
+      this.prisma.ticket.count({
+        where: { ...teamFilter, assigneeId: null, status: { in: OPEN_STATUSES } },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          assigneeId: actor.id,
+          priority: { in: ['CRITICAL', 'HIGH'] },
+          status: { in: OPEN_STATUSES },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          OR: [{ assigneeId: actor.id }, teamFilter],
+          slaState: 'AT_RISK',
+          status: { in: OPEN_STATUSES },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          OR: [{ assigneeId: actor.id }, teamFilter],
+          slaState: 'BREACHED',
+          status: { in: OPEN_STATUSES },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: {
+          AND: [
+            { OR: [{ assigneeId: actor.id }, teamFilter] },
+            { OR: [{ slaState: { in: ['ON_TRACK', 'PAUSED'] } }, { slaState: null }] },
+          ],
+          status: { in: OPEN_STATUSES },
+        },
+      }),
+      this.prisma.ticket.count({
+        where: { assigneeId: actor.id, status: 'WAITING_FOR_USER' },
+      }),
+      this.prisma.ticket.findMany({
+        where: {
+          OR: [{ assigneeId: actor.id }, teamFilter],
+          status: { in: OPEN_STATUSES },
+        },
+        select: TICKET_LIST_SELECT,
+        take: 100,
+      }),
+    ]);
 
     const needsAttention = [...attention]
       .sort((a, b) => {
@@ -136,7 +153,15 @@ export class DashboardService {
 
     return {
       data: {
-        stats: { assignedToMe, unassignedInTeams, criticalHigh, slaAtRisk, slaBreached, waiting },
+        stats: {
+          assignedToMe,
+          unassignedInTeams,
+          criticalHigh,
+          slaAtRisk,
+          slaBreached,
+          slaOnTrack,
+          waiting,
+        },
         needsAttention,
       },
     };
@@ -145,39 +170,64 @@ export class DashboardService {
   async manager(_actor: AuthUser) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [open, byPriority, byStatus, avgRows, complianceRows, breaches7d, byTeamRows, teams] =
-      await Promise.all([
-        this.prisma.ticket.count({ where: { status: { in: OPEN_STATUSES } } }),
-        this.prisma.ticket.groupBy({
-          by: ['priority'],
-          where: { status: { in: OPEN_STATUSES } },
-          _count: { _all: true },
-        }),
-        this.prisma.ticket.groupBy({
-          by: ['status'],
-          where: { status: { in: OPEN_STATUSES } },
-          _count: { _all: true },
-        }),
-        this.prisma.$queryRaw<Array<{ avg_minutes: number | null }>>`
-          SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60)::float8 AS avg_minutes
-          FROM tickets
-          WHERE resolved_at IS NOT NULL AND resolved_at >= ${thirtyDaysAgo}
-        `,
-        this.prisma.$queryRaw<Array<{ total: bigint; on_time: bigint }>>`
-          SELECT COUNT(*)::bigint AS total,
-                 COUNT(*) FILTER (WHERE completed_at <= due_at)::bigint AS on_time
-          FROM sla_timers
-          WHERE kind = 'RESOLUTION' AND completed_at IS NOT NULL AND completed_at >= ${thirtyDaysAgo}
-        `,
-        this.prisma.slaTimer.count({ where: { breachedAt: { gte: sevenDaysAgo } } }),
-        this.prisma.ticket.groupBy({
-          by: ['teamId'],
-          where: { status: { in: OPEN_STATUSES }, teamId: { not: null } },
-          _count: { _all: true },
-        }),
-        this.prisma.team.findMany({ select: { id: true, name: true } }),
-      ]);
+    const [
+      open,
+      byPriority,
+      byStatus,
+      avgRows,
+      complianceRows,
+      breaches7d,
+      byTeamRows,
+      teams,
+      created7d,
+      createdPrev7d,
+      resolved7d,
+      resolvedPrev7d,
+      breachesPrev7d,
+    ] = await Promise.all([
+      this.prisma.ticket.count({ where: { status: { in: OPEN_STATUSES } } }),
+      this.prisma.ticket.groupBy({
+        by: ['priority'],
+        where: { status: { in: OPEN_STATUSES } },
+        _count: { _all: true },
+      }),
+      this.prisma.ticket.groupBy({
+        by: ['status'],
+        where: { status: { in: OPEN_STATUSES } },
+        _count: { _all: true },
+      }),
+      this.prisma.$queryRaw<Array<{ avg_minutes: number | null }>>`
+        SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 60)::float8 AS avg_minutes
+        FROM tickets
+        WHERE resolved_at IS NOT NULL AND resolved_at >= ${thirtyDaysAgo}
+      `,
+      this.prisma.$queryRaw<Array<{ total: bigint; on_time: bigint }>>`
+        SELECT COUNT(*)::bigint AS total,
+               COUNT(*) FILTER (WHERE completed_at <= due_at)::bigint AS on_time
+        FROM sla_timers
+        WHERE kind = 'RESOLUTION' AND completed_at IS NOT NULL AND completed_at >= ${thirtyDaysAgo}
+      `,
+      this.prisma.slaTimer.count({ where: { breachedAt: { gte: sevenDaysAgo } } }),
+      this.prisma.ticket.groupBy({
+        by: ['teamId'],
+        where: { status: { in: OPEN_STATUSES }, teamId: { not: null } },
+        _count: { _all: true },
+      }),
+      this.prisma.team.findMany({ select: { id: true, name: true } }),
+      this.prisma.ticket.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      this.prisma.ticket.count({
+        where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+      }),
+      this.prisma.ticket.count({ where: { resolvedAt: { gte: sevenDaysAgo } } }),
+      this.prisma.ticket.count({
+        where: { resolvedAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+      }),
+      this.prisma.slaTimer.count({
+        where: { breachedAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+      }),
+    ]);
 
     const teamNames = new Map(teams.map((team) => [team.id, team.name]));
     const byTeam = byTeamRows
@@ -203,6 +253,11 @@ export class DashboardService {
             avgRows[0]?.avg_minutes != null ? Math.round(avgRows[0].avg_minutes) : null,
           slaCompliancePercent,
           breaches7d,
+        },
+        trends: {
+          created: { current: created7d, previous: createdPrev7d },
+          resolved: { current: resolved7d, previous: resolvedPrev7d },
+          breaches: { current: breaches7d, previous: breachesPrev7d },
         },
         byPriority: byPriority.map((row) => ({
           priority: row.priority as Priority,

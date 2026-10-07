@@ -411,11 +411,12 @@ test.describe('OpsDesk Comprehensive End-to-End Audit', () => {
     await page.locator('#audit-entity').fill('ticket');
     await page.getByRole('button', { name: 'Filter' }).click();
 
-    // Details elements should exist
+    // Details elements should exist and expand into diff/metadata content
     const details = page.locator('details');
     if ((await details.count()) > 0) {
       await details.first().click();
-      await expect(page.locator('pre').first()).toBeVisible();
+      await expect(details.first()).toHaveAttribute('open', '');
+      await expect(details.first().locator('ul, dl, p').first()).toBeVisible();
     }
 
     await adminCtx.close();
