@@ -15,8 +15,10 @@ async function expectNoSeriousViolations(page: Page) {
 }
 
 test.describe('Accessibility (WCAG 2.2 AA spot checks)', () => {
-  test('login page has no serious violations', async ({ page }) => {
+  test('login and register pages have no serious violations', async ({ page }) => {
     await page.goto('/login');
+    await expectNoSeriousViolations(page);
+    await page.goto('/register');
     await expectNoSeriousViolations(page);
   });
 

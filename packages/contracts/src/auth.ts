@@ -30,6 +30,14 @@ export const acceptInviteSchema = z.strictObject({
 });
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 
+export const registerSchema = z.strictObject({
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  email: z.email(),
+  password: passwordSchema,
+});
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const roleSummarySchema = z.object({
   id: z.uuid(),
   key: z.string(),

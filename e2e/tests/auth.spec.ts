@@ -72,6 +72,26 @@ test.describe('Auth & RBAC (E2E-9)', () => {
     await adminApi.dispose();
   });
 
+  test('demo persona pill signs in with one click', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByRole('button', { name: 'Demo login as Employee' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome back,');
+  });
+
+  test('self-service registration creates an account and starts a session', async ({ page }) => {
+    const email = `e2e-${Date.now()}@opsdesk.local`;
+    await page.goto('/register');
+    await page.getByLabel('First name').fill('E2E');
+    await page.getByLabel('Last name').fill('Registered');
+    await page.getByLabel('Work email').fill(email);
+    await page.getByLabel(/^Password/).fill('FreshPassword!2345');
+    await page.getByLabel('Confirm password').fill('FreshPassword!2345');
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome back, E2E');
+  });
+
   test('sign out ends the session', async ({ page, context }) => {
     await loginAs(context, users.employee);
     await page.goto('/dashboard');

@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { Me } from '@opsdesk/contracts';
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
+import type { Me, RegisterInput } from '@opsdesk/contracts';
 import { DomainError, errors } from '../../common/errors';
 import { hashPassword, randomToken, sha256, verifyPassword } from '../../common/crypto/password';
 import { uuidv7 } from '../../common/id';
@@ -7,6 +9,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { MailService } from '../mail/mail.service';
 import { TokenService } from './token.service';
+import type { Env } from '../../config/env';
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_FAILED_LOGINS = 10;
@@ -27,6 +30,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly mail: MailService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async login(
@@ -89,6 +93,83 @@ export class AuthService {
       accessToken: this.tokens.signAccessToken(user.id, result.sessionId),
       refreshToken: result.refreshToken,
       me: await this.getMe(user.id),
+    };
+  }
+
+  /**
+   * Self-service registration (gated by ALLOW_SELF_REGISTRATION). Creates an
+   * ACTIVE user with the EMPLOYEE role and immediately starts a session.
+   */
+  async register(
+    input: RegisterInput,
+    ip: string | undefined,
+    userAgent: string | undefined,
+  ): Promise<LoginResult> {
+    if (!this.config.get('ALLOW_SELF_REGISTRATION', { infer: true })) {
+      throw new DomainError(
+        'REGISTRATION_DISABLED',
+        403,
+        'Self-service registration is disabled. Ask IT for an invitation.',
+      );
+    }
+    const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
+    if (existing) {
+      throw new DomainError(
+        'EMAIL_TAKEN',
+        409,
+        'An account with this email already exists. Sign in instead.',
+      );
+    }
+    const employeeRole = await this.prisma.role.findUnique({ where: { key: 'EMPLOYEE' } });
+    if (!employeeRole) {
+      throw new DomainError(
+        'INTERNAL_ERROR',
+        500,
+        'Registration is temporarily unavailable. Contact IT.',
+      );
+    }
+
+    const userId = uuidv7();
+    const passwordHash = await hashPassword(input.password);
+    let session;
+    try {
+      session = await this.prisma.$transaction(async (tx) => {
+        await tx.user.create({
+          data: {
+            id: userId,
+            email: input.email,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            status: 'ACTIVE',
+            passwordHash,
+          },
+        });
+        await tx.userRole.create({ data: { userId, roleId: employeeRole.id } });
+        const created = await this.tokens.createSession(tx, userId, userAgent, ip);
+        await this.audit.record(tx, {
+          action: 'auth.self_registered',
+          entityType: 'user',
+          entityId: userId,
+          metadata: { email: input.email },
+        });
+        return created;
+      });
+    } catch (error) {
+      // Unique-constraint race: two concurrent registrations for the same email.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new DomainError(
+          'EMAIL_TAKEN',
+          409,
+          'An account with this email already exists. Sign in instead.',
+        );
+      }
+      throw error;
+    }
+
+    return {
+      accessToken: this.tokens.signAccessToken(userId, session.sessionId),
+      refreshToken: session.refreshToken,
+      me: await this.getMe(userId),
     };
   }
 

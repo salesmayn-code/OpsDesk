@@ -98,6 +98,8 @@ All seeded accounts use the dev-only password `ChangeMe!12345`:
 | `agent@opsdesk.local` / `agent2@opsdesk.local` | Support Agent |
 | `employee@opsdesk.local` | Employee |
 
+The sign-in page offers one-click demo persona buttons. The public `/register` flow (enabled by `ALLOW_SELF_REGISTRATION=true`) creates Employee accounts.
+
 Mailpit captures outbound email at http://localhost:8025.
 
 ---

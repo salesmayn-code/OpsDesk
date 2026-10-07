@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/accept-invite'];
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/accept-invite'];
 
 /** Presence check only; the API remains authoritative (TRD §11.3). */
 export function middleware(request: NextRequest) {

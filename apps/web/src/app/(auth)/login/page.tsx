@@ -12,15 +12,26 @@ import { AuthShell } from '@/features/auth/auth-shell';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
 
+/** Seeded demo personas (README "Demo accounts"); password matches the seed. */
+const DEMO_PASSWORD = 'ChangeMe!12345';
+const DEMO_PERSONAS = [
+  { label: 'Admin', email: 'admin@opsdesk.local' },
+  { label: 'IT Manager', email: 'manager@opsdesk.local' },
+  { label: 'Support Agent', email: 'agent@opsdesk.local' },
+  { label: 'Employee', email: 'employee@opsdesk.local' },
+] as const;
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [demoPending, setDemoPending] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -28,11 +39,15 @@ function LoginForm() {
   });
 
   const resetCompleted = searchParams.get('reset') === '1';
+  const busy = isSubmitting || demoPending !== null;
 
-  const onSubmit = handleSubmit(async (values) => {
+  const signIn = async (email: string, password: string) => {
     setServerError(null);
     try {
-      await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(values) });
+      await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
       await refresh();
       router.push(searchParams.get('next') ?? '/dashboard');
     } catch (error) {
@@ -42,7 +57,20 @@ function LoginForm() {
           : 'Something went wrong. Please try again.',
       );
     }
-  });
+  };
+
+  const onSubmit = handleSubmit((values) => signIn(values.email, values.password));
+
+  const signInAsDemo = async (persona: (typeof DEMO_PERSONAS)[number]) => {
+    setValue('email', persona.email);
+    setValue('password', DEMO_PASSWORD);
+    setDemoPending(persona.email);
+    try {
+      await signIn(persona.email, DEMO_PASSWORD);
+    } finally {
+      setDemoPending(null);
+    }
+  };
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
@@ -96,9 +124,40 @@ function LoginForm() {
         </Link>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" className="w-full" disabled={busy}>
         {isSubmitting ? 'Signing in…' : 'Sign in'}
       </Button>
+
+      <div className="border-t border-border pt-4">
+        <p className="text-xs text-muted-foreground" id="demo-accounts-label">
+          Explore a demo account
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2" aria-labelledby="demo-accounts-label">
+          {DEMO_PERSONAS.map((persona) => (
+            <Button
+              key={persona.email}
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              aria-label={`Demo login as ${persona.label}`}
+              onClick={() => void signInAsDemo(persona)}
+            >
+              {demoPending === persona.email ? 'Signing in…' : persona.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{' '}
+        <Link
+          href="/register"
+          className="text-primary underline underline-offset-4 hover:no-underline"
+        >
+          Create one
+        </Link>
+      </p>
     </form>
   );
 }

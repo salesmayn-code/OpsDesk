@@ -179,6 +179,59 @@ describe('Auth lifecycle (integration)', () => {
     await prisma.user.delete({ where: { id: user.id } });
   });
 
+  it('registers a new employee, starts a session, and grants the EMPLOYEE role', async () => {
+    const email = `register-${Date.now()}@opsdesk.local`;
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Self',
+        lastName: 'Registered',
+        email,
+        password: 'FreshPassword!2345',
+      })
+      .expect(201);
+
+    expect(res.body.data.email).toBe(email);
+    expect(
+      (res.body.data.roles as { key: string }[]).map((role) => role.key),
+    ).toContain('EMPLOYEE');
+    expect(res.body.data.permissions).toContain('ticket:create');
+
+    const access = cookieValue(res.headers['set-cookie'], 'opsdesk_access');
+    const me = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', access)
+      .expect(200);
+    expect(me.body.data.email).toBe(email);
+
+    await prisma.user.delete({ where: { email } });
+  });
+
+  it('rejects registration for an existing email with 409', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Dup',
+        lastName: 'User',
+        email: employeeEmail,
+        password: 'FreshPassword!2345',
+      })
+      .expect(409);
+    expect(res.body.code).toBe('EMAIL_TAKEN');
+  });
+
+  it('rejects a short registration password with 400', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        firstName: 'Weak',
+        lastName: 'Pass',
+        email: `weak-${Date.now()}@opsdesk.local`,
+        password: 'short',
+      })
+      .expect(400);
+  });
+
   it('forgot-password always returns 202, even for unknown emails', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/password/forgot')

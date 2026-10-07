@@ -15,6 +15,7 @@ module.exports = {
       testEnvironment: 'node',
       roots: ['<rootDir>/test'],
       testMatch: ['**/*.int-spec.ts'],
+      setupFiles: ['<rootDir>/test/setup-env.ts'],
     },
   ],
 };

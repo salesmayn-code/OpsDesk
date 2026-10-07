@@ -12,6 +12,10 @@ export const envSchema = z.object({
   REFRESH_TTL_DAYS: z.coerce.number().int().default(7),
   CSRF_SECRET: z.string().min(32),
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  ALLOW_SELF_REGISTRATION: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   SMTP_USER: z.string().optional(),

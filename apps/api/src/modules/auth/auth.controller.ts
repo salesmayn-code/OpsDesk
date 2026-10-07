@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { AcceptInviteDto, ForgotPasswordDto, LoginDto, ResetPasswordDto } from './auth.dto';
+import { AcceptInviteDto, ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './auth.dto';
 import { AuthService } from './auth.service';
 import { REFRESH_COOKIE, TokenService } from './token.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -40,6 +40,20 @@ export class AuthController {
       req.ip,
       req.headers['user-agent'],
     );
+    this.tokenService.setAuthCookies(res, result.accessToken, result.refreshToken);
+    return { data: result.me };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('register')
+  @HttpCode(201)
+  async register(
+    @Body() body: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.register(body, req.ip, req.headers['user-agent']);
     this.tokenService.setAuthCookies(res, result.accessToken, result.refreshToken);
     return { data: result.me };
   }
