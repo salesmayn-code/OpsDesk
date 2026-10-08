@@ -7,6 +7,7 @@ import { cleanupOpenApiDoc } from 'nestjs-zod';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
+import { startWorkerRuntime } from './worker-runtime';
 import type { Env } from './config/env';
 
 async function bootstrap() {
@@ -28,6 +29,19 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, cleanupOpenApiDoc(openApi));
 
   await app.listen(config.get('PORT', { infer: true }));
+
+  // Single-service deployments (e.g. Railway) run the background worker
+  // in-process; set RUN_EMBEDDED_WORKER=true there instead of a second service.
+  if (config.get('RUN_EMBEDDED_WORKER', { infer: true })) {
+    const runtime = await startWorkerRuntime();
+    const shutdown = async () => {
+      await runtime.shutdown();
+      await app.close();
+      process.exit(0);
+    };
+    process.on('SIGTERM', () => void shutdown());
+    process.on('SIGINT', () => void shutdown());
+  }
 }
 
 void bootstrap();

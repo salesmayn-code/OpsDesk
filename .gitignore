@@ -8,7 +8,8 @@ coverage/
 .env.local
 .env.*.local
 .turbo/
-storage/
+/storage/
+/apps/api/storage/
 playwright-report/
 test-results/
 *.log
