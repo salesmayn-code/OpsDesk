@@ -674,19 +674,24 @@ async function seedAssets(tx: Tx, userIds: Record<string, string>) {
 }
 
 async function main() {
-  await prisma.$transaction(async (tx) => {
-    await seedPermissions(tx);
-    await seedRoles(tx);
-    await seedOrg(tx);
-    const userIds = await seedUsers(tx);
-    await seedCatalog(tx);
-    await seedSla(tx);
-    await seedServices(tx);
-    await seedChangeRules(tx);
-    await seedWorkflowTemplates(tx);
-    await seedKnowledge(tx);
-    await seedAssets(tx, userIds);
-  });
+  // Long timeout: the seed is one large transaction and may run over a remote
+  // proxy connection where the default 5s interactive-transaction limit is too low.
+  await prisma.$transaction(
+    async (tx) => {
+      await seedPermissions(tx);
+      await seedRoles(tx);
+      await seedOrg(tx);
+      const userIds = await seedUsers(tx);
+      await seedCatalog(tx);
+      await seedSla(tx);
+      await seedServices(tx);
+      await seedChangeRules(tx);
+      await seedWorkflowTemplates(tx);
+      await seedKnowledge(tx);
+      await seedAssets(tx, userIds);
+    },
+    { maxWait: 30_000, timeout: 600_000 },
+  );
   console.warn('Seed complete: roles, permissions, org, users, catalog, SLA, services, assets.');
 }
 
