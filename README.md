@@ -8,6 +8,14 @@ OpsDesk models **business processes, not CRUD** — every primary record (ticket
 
 ---
 
+## Preview
+
+![OpsDesk landing page and sign-in](docs/screenshots/landing.jpg)
+
+The public entry point for OpsDesk. The service desk behind it is authenticated and role-aware.
+
+---
+
 ## Highlights
 
 ### Service desk (MVP)
