@@ -1,0 +1,14 @@
+# Render's free plan sleeps after 15 idle minutes and takes ~1 min to wake, which
+# makes the first demo login time out. 750 free hours/month covers one always-on service.
+name: Keep demo API warm
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --retry 3 --retry-delay 20 --max-time 90 https://opsdesk-api.onrender.com/api/v1/health

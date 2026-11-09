@@ -16,6 +16,8 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  /** Proxy hops in front of the API (e.g. 2 for Vercel rewrite → Railway edge); 0 = none. */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
   RUN_EMBEDDED_WORKER: z
     .enum(['true', 'false'])
     .default('false')

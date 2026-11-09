@@ -1,0 +1,46 @@
+# Free-tier demo backend: Render web service (API + embedded worker) + Render Key Value.
+# Postgres lives on Neon (Render's free Postgres expires after 30 days).
+# The web app stays on Vercel and proxies /api/v1 here via API_ORIGIN (apps/web/next.config.ts).
+services:
+  - type: web
+    name: opsdesk-api
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Free plan has no pre-deploy step, so migrations run at start (idempotent).
+    dockerCommand: sh -c "cd apps/api && node_modules/.bin/prisma migrate deploy && exec node dist/main.js"
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Neon connection string, entered in the Render dashboard
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: opsdesk-redis
+          property: connectionString
+      - key: APP_URL
+        value: https://opsdesk-orpin.vercel.app
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: COOKIE_SAMESITE
+        value: lax
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: RUN_EMBEDDED_WORKER
+        value: "true"
+      - key: ALLOW_SELF_REGISTRATION
+        value: "true"
+      - key: ORG_TIMEZONE
+        value: Asia/Karachi
+
+  - type: keyvalue
+    name: opsdesk-redis
+    plan: free
+    maxmemoryPolicy: noeviction # BullMQ requires keys never be evicted
+    ipAllowList: [] # internal network only

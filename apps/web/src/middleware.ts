@@ -23,5 +23,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
+  // api/ is proxied to the backend (next.config.ts), which does its own auth.
+  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };

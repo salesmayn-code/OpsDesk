@@ -15,6 +15,10 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   const config = app.get(ConfigService<Env, true>);
 
+  // req.ip feeds rate limits, lockout and session/audit IPs; behind proxies it must
+  // come from X-Forwarded-For, trusting only the known number of hops.
+  const proxyHops = config.get('TRUST_PROXY_HOPS', { infer: true });
+  if (proxyHops > 0) app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
   app.use(helmet());
   app.enableCors({
     origin: config.get('APP_URL', { infer: true }),

@@ -112,6 +112,19 @@ Mailpit captures outbound email at http://localhost:8025.
 
 ---
 
+## Deploying the demo (free tier)
+
+| Piece | Host | Config |
+|---|---|---|
+| Web app | Vercel (root `apps/web`) | `apps/web/vercel.json`; set `API_ORIGIN` to the API's URL |
+| API + background worker | Render free web service | `render.yaml` blueprint (Docker, migrations run at start) |
+| Redis (BullMQ) | Render free Key Value | `render.yaml` (`noeviction`) |
+| PostgreSQL | Neon free | paste its connection string as `DATABASE_URL` on Render |
+
+The web app proxies `/api/v1/*` to `API_ORIGIN` (`apps/web/next.config.ts`), so auth cookies are first-party on the web domain. Seed once against Neon with `pnpm db:seed`. `.github/workflows/keep-warm.yml` pings the API so Render's free instance doesn't sleep. Attachments use the instance's local disk and are lost on redeploy.
+
+---
+
 ## Commands
 
 | Command | Purpose |

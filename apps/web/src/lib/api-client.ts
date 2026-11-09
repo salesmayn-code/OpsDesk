@@ -1,6 +1,7 @@
 import type { ApiError } from '@opsdesk/contracts';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+/** Empty = same origin; next.config.ts proxies /api/v1 to API_ORIGIN. */
+export const API_URL = '';
 
 export class ApiClientError extends Error {
   constructor(
