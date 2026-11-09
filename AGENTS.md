@@ -34,7 +34,7 @@ Before writing any code, stop at the first rung that holds:
 - No new dependencies if existing ones or the standard library suffice.
 - Deletion over addition. Boring over clever. Fewest files possible.
 - **Root Cause, Not Symptom:** When fixing a bug, find and fix the root cause once rather than patching callers individually.
-- Mark deliberate simplifications with `// ponytail: [rationale and ceiling]`.
+- Mark deliberate simplifications with `// shortcut: <the limit>, <when to upgrade>` (older code may use `// ponytail:`; `ponytail-debt` collects both).
 
 ---
 
@@ -52,10 +52,11 @@ Adhere to the ECC quality standards across all code:
 
 ## 4. Agent Skills Available
 
-Specialized skills are installed in `.agents/skills/`:
+Specialized skills are installed in `.agents/skills/` and mirrored in `.claude/skills/` (Claude Code reads only the latter; `impeccable` uses each folder's matching upstream variant):
 - **Architecture & Backend:** `nestjs-patterns`, `prisma-patterns`, `postgres-patterns`, `database-migrations`, `redis-patterns`, `api-design`, `backend-patterns`, `contract-first`, `error-handling`.
-- **Frontend & UI:** `nextjs-turbopack`, `react-patterns`, `react-performance`, `react-testing`, `frontend-patterns`, `frontend-design-direction`, `frontend-a11y`, `accessibility`, `design-system`, `make-interfaces-feel-better`, `dashboard-builder`.
-- **Quality & Verification:** `tdd-workflow`, `e2e-testing`, `browser-qa`, `verification-loop`, `security-review`, `security-scan`, `coding-standards`.
+- **Frontend & UI:** `nextjs-turbopack`, `react-patterns`, `react-performance`, `react-testing`, `frontend-patterns`, `frontend-design-direction`, `frontend-a11y`, `accessibility`, `design-system`, `make-interfaces-feel-better`, `dashboard-builder`, `impeccable`, `break-ui`.
+- **Quality & Verification:** `tdd-workflow`, `e2e-testing`, `browser-qa`, `verification-loop`, `security-review`, `security-scan`, `coding-standards`, `systematic-debugging`.
+- **Production:** `shipping-and-launch`, `observability-and-instrumentation`.
 - **Documentation & Workflow:** `architecture-decision-records`, `living-docs-governance`, `git-workflow`, `search-first`, `documentation-lookup`.
 - **Ponytail:** `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help`, `ponytail-review`.
 

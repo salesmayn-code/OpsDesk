@@ -12,5 +12,5 @@ Please refer to [AGENTS.md](file:///d:/Projects/Personal/Workaro/AGENTS.md) for 
 - [06-Implementation-Plan.md](file:///d:/Projects/Personal/Workaro/docs/06-Implementation-Plan.md)
 
 ### Agent Skills & Rules
-- Installed skills: `.agents/skills/` (38 specialized skills from ECC and Ponytail)
+- Installed skills: `.agents/skills/` (43 skills: ECC, Ponytail, superpowers, Impeccable, Emil Kowalski, Addy Osmani agent-skills; mirrored in `.claude/skills/`)
 - Installed rules: `.agents/rules/` (`ponytail.md`, `common/`, `typescript/`, `react/`, `web/`)
