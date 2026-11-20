@@ -73,4 +73,5 @@ jobs:
         run: |
           node_modules/.bin/prisma migrate deploy
           pnpm db:seed
-      - run: pnpm test:integration
+      # Run directly: Turborepo's strict env mode would strip the CI env vars above.
+      - run: pnpm --filter @opsdesk/api test:integration
