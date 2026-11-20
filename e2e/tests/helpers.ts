@@ -3,6 +3,8 @@ import type { APIRequestContext, APIResponse, BrowserContext } from '@playwright
 export const API_URL = 'http://localhost:4000';
 export const WEB_URL = 'http://localhost:3000';
 export const PASSWORD = 'ChangeMe!12345';
+/** Mailpit web/API port; override when 8025 is taken by another local stack. */
+export const MAILPIT_URL = process.env.MAILPIT_URL ?? 'http://localhost:8025';
 
 interface CookiePair {
   name: string;
@@ -80,13 +82,13 @@ export async function fetchInviteToken(
 ): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const list = await request.get('http://localhost:8025/api/v1/messages?limit=50');
+    const list = await request.get(`${MAILPIT_URL}/api/v1/messages?limit=50`);
     const body = (await list.json()) as { messages?: { ID: string; To?: { Address: string }[] }[] };
     const match = body.messages?.find((message) =>
       message.To?.some((to) => to.Address.toLowerCase() === email.toLowerCase()),
     );
     if (match) {
-      const detail = await request.get(`http://localhost:8025/api/v1/message/${match.ID}`);
+      const detail = await request.get(`${MAILPIT_URL}/api/v1/message/${match.ID}`);
       const content = (await detail.json()) as { HTML?: string; Text?: string };
       const raw = `${content.HTML ?? ''}\n${content.Text ?? ''}`;
       const token = raw.match(/accept-invite\?token=([A-Za-z0-9_-]+)/)?.[1];

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API_URL, loginAs, unique, users, PASSWORD, forgetSession } from './helpers';
+import { API_URL, MAILPIT_URL, loginAs, unique, users, PASSWORD, forgetSession } from './helpers';
 
 async function fetchPasswordResetToken(
   request: any,
@@ -8,13 +8,13 @@ async function fetchPasswordResetToken(
 ): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const list = await request.get('http://localhost:8025/api/v1/messages?limit=50');
+    const list = await request.get(`${MAILPIT_URL}/api/v1/messages?limit=50`);
     const body = (await list.json()) as { messages?: { ID: string; To?: { Address: string }[] }[] };
     const match = body.messages?.find((message) =>
       message.To?.some((to) => to.Address.toLowerCase() === email.toLowerCase()),
     );
     if (match) {
-      const detail = await request.get(`http://localhost:8025/api/v1/message/${match.ID}`);
+      const detail = await request.get(`${MAILPIT_URL}/api/v1/message/${match.ID}`);
       const content = (await detail.json()) as { HTML?: string; Text?: string };
       const raw = `${content.HTML ?? ''}\n${content.Text ?? ''}`;
       const token = raw.match(/reset-password\?token=([A-Za-z0-9_-]+)/)?.[1];
@@ -569,8 +569,15 @@ test.describe('OpsDesk Comprehensive End-to-End Audit', () => {
     await page.getByRole('tab', { name: 'Onboarding' }).click();
     await expect(page.getByRole('tab', { name: 'Onboarding' })).toHaveAttribute('aria-selected', 'true');
 
-    // Open first onboarding workflow
-    await page.goto('/workflows/ONB-000001');
+    // Open an onboarding workflow created for this test (no reliance on earlier runs' data).
+    const employee = await mgrCtx.request.get(`${API_URL}/api/v1/users?q=employee@opsdesk.local`);
+    const subjectUserId = (await employee.json()).data[0].id as string;
+    const created = await mgrCtx.request.post(`${API_URL}/api/v1/onboarding`, {
+      data: { subjectUserId, effectiveDate: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10) },
+    });
+    expect(created.ok()).toBeTruthy();
+    const { key } = (await created.json()).data as { key: string };
+    await page.goto(`/workflows/${key}`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Onboarding');
     await expect(page.getByRole('heading', { name: 'Checklist' })).toBeVisible();
 
