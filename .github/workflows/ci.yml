@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # API config schema requires these; values are CI-only.
+  NODE_ENV: test
+  DATABASE_URL: postgresql://opsdesk:opsdesk@localhost:5432/opsdesk
+  REDIS_URL: redis://localhost:6379
+  JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000
+  CSRF_SECRET: ci-csrf-secret-00000000000000000000000000
+  SMTP_HOST: localhost
+  SMTP_PORT: '1025'
+
+jobs:
+  verify:
+    name: Typecheck, lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm verify
+
+  integration:
+    name: API integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: opsdesk
+          POSTGRES_PASSWORD: opsdesk
+          POSTGRES_DB: opsdesk
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U opsdesk -d opsdesk"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ['1025:1025', '8025:8025']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - name: Migrate and seed
+        working-directory: apps/api
+        run: |
+          node_modules/.bin/prisma migrate deploy
+          pnpm db:seed
+      - run: pnpm test:integration
