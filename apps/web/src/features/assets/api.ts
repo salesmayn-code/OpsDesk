@@ -5,6 +5,7 @@ import type {
   PageMeta,
   UnassignAssetInput,
   AssetTransitionInput,
+  UpdateAssetInput,
 } from '@opsdesk/contracts';
 import { apiFetch } from '@/lib/api-client';
 
@@ -62,6 +63,13 @@ export function fetchAssetTickets(
   tag: string,
 ): Promise<{ data: { id: string; key: string; title: string; status: string }[] }> {
   return apiFetch(`/assets/${encodeURIComponent(tag)}/tickets`);
+}
+
+export function updateAsset(id: string, input: UpdateAssetInput): Promise<{ data: AssetDetailDto }> {
+  return apiFetch(`/assets/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }
 
 export function assignAsset(

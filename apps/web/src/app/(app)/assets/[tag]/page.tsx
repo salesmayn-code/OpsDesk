@@ -15,6 +15,7 @@ import {
   useUnassignAsset,
 } from '@/features/assets/hooks';
 import { AssetStatusBadge, WarrantyBadge } from '@/components/asset-badges';
+import { AssignAssetPanel, EditAssetPanel } from '@/features/assets/asset-panels';
 import { ConflictBanner } from '@/components/conflict-banner';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
@@ -42,6 +43,7 @@ export default function AssetDetailPage() {
   const transition = useTransitionAsset();
 
   const [pending, setPending] = useState<AssetStatus | null>(null);
+  const [panel, setPanel] = useState<'assign' | 'edit' | null>(null);
   const [note, setNote] = useState('');
   const [disposalMethod, setDisposalMethod] = useState('');
   const [banner, setBanner] = useState<{ kind: 'conflict' | 'error'; message: string } | null>(
@@ -146,6 +148,16 @@ export default function AssetDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {asset.can.assign && ['IN_STOCK', 'ASSIGNED', 'IN_REPAIR'].includes(asset.status) ? (
+              <Button size="sm" onClick={() => setPanel(panel === 'assign' ? null : 'assign')}>
+                {asset.currentAssignee ? 'Reassign…' : 'Assign to…'}
+              </Button>
+            ) : null}
+            {asset.can.update && !terminal ? (
+              <Button size="sm" variant="outline" onClick={() => setPanel(panel === 'edit' ? null : 'edit')}>
+                Edit details
+              </Button>
+            ) : null}
             {canReassignToMe ? (
               <Button
                 size="sm"
@@ -193,6 +205,13 @@ export default function AssetDetailPage() {
               : null}
           </div>
         </div>
+
+        {panel === 'assign' ? (
+          <AssignAssetPanel key={asset.version} asset={asset} onDone={() => setPanel(null)} onError={onError} />
+        ) : null}
+        {panel === 'edit' ? (
+          <EditAssetPanel key={asset.version} asset={asset} onDone={() => setPanel(null)} onError={onError} />
+        ) : null}
 
         {pending ? (
           <form

@@ -1,6 +1,11 @@
 'use client';
 
-import type { AssetStatus, AssignAssetInput, UnassignAssetInput } from '@opsdesk/contracts';
+import type {
+  AssetStatus,
+  AssignAssetInput,
+  UnassignAssetInput,
+  UpdateAssetInput,
+} from '@opsdesk/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignAsset,
@@ -13,6 +18,7 @@ import {
   fetchMyAssets,
   transitionAsset,
   unassignAsset,
+  updateAsset,
   type PaginatedAssets,
 } from './api';
 
@@ -61,6 +67,12 @@ function useAssetMutation<TInput>(
       void queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
+}
+
+export function useUpdateAsset() {
+  return useAssetMutation<UpdateAssetInput & { assetId: string }>(({ assetId, ...input }) =>
+    updateAsset(assetId, input),
+  );
 }
 
 export function useAssignAsset() {
