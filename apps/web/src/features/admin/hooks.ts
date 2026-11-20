@@ -1,11 +1,13 @@
 'use client';
 
-import type { InviteUserInput } from '@opsdesk/contracts';
+import type { CreateSlaPolicyInput, InviteUserInput } from '@opsdesk/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   changeUserStatus,
   createAssetType,
+  createBusinessCalendar,
   createCategory,
+  createSlaPolicy,
   fetchBusinessCalendars,
   fetchDepartments,
   fetchRoles,
@@ -15,6 +17,7 @@ import {
   inviteUser,
   previewSla,
   updateCategory,
+  updateSlaPolicy,
   updateUserRoles,
 } from './api';
 
@@ -70,6 +73,23 @@ export function useSlaPolicies() {
 
 export function useBusinessCalendars() {
   return useQuery({ queryKey: ['admin', 'calendars'], queryFn: fetchBusinessCalendars });
+}
+
+export function useSaveSlaPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: CreateSlaPolicyInput & { id?: string }) =>
+      id ? updateSlaPolicy(id, input) : createSlaPolicy(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'sla-policies'] }),
+  });
+}
+
+export function useCreateBusinessCalendar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createBusinessCalendar,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'calendars'] }),
+  });
 }
 
 export function useSlaPreview() {

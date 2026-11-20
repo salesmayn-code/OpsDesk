@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import type { SlaPolicy } from '@opsdesk/contracts';
 import {
   useBusinessCalendars,
   useSlaPolicies,
@@ -9,17 +10,50 @@ import {
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { formatDateTime } from '@/lib/format';
+import { BusinessCalendarForm, SlaPolicyForm } from '@/features/admin/sla-forms';
+import { useCategories } from '@/features/tickets/hooks';
+import { TICKET_TYPE_LABELS } from '@/features/tickets/labels';
 
 export default function AdminSlaPage() {
   const policies = useSlaPolicies();
   const calendars = useBusinessCalendars();
   const preview = useSlaPreview();
+  const categories = useCategories();
+  const categoryName = (id: string | null) =>
+    id ? (categories.data?.data.find((c) => c.id === id)?.name ?? 'Category') : 'Any category';
   const [priority, setPriority] = useState('HIGH');
   const [type, setType] = useState('INCIDENT');
+  const [editing, setEditing] = useState<
+    { kind: 'policy'; policy?: SlaPolicy } | { kind: 'calendar' } | null
+  >(null);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-display font-semibold tracking-tight">SLA policies</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-display font-semibold tracking-tight">SLA policies</h1>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setEditing({ kind: 'calendar' })}>
+            New calendar
+          </Button>
+          <Button
+            size="sm"
+            disabled={!calendars.data?.data.length}
+            onClick={() => setEditing({ kind: 'policy' })}
+          >
+            New policy
+          </Button>
+        </div>
+      </div>
+
+      {editing?.kind === 'policy' && calendars.data ? (
+        <SlaPolicyForm
+          key={editing.policy?.id ?? 'new'}
+          policy={editing.policy}
+          calendars={calendars.data.data}
+          onDone={() => setEditing(null)}
+        />
+      ) : null}
+      {editing?.kind === 'calendar' ? <BusinessCalendarForm onDone={() => setEditing(null)} /> : null}
 
       <section className="space-y-2">
         <h2 className="text-title font-semibold">Policies</h2>
@@ -41,6 +75,9 @@ export default function AdminSlaPage() {
                   <th scope="col" className="px-3 py-2 font-medium">Resolution</th>
                   <th scope="col" className="px-3 py-2 font-medium">Thresholds</th>
                   <th scope="col" className="px-3 py-2 font-medium">Flags</th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -48,7 +85,11 @@ export default function AdminSlaPage() {
                   <tr key={policy.id} className="border-b border-border last:border-0">
                     <td className="px-3 py-2">{policy.name}</td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {[policy.priority ?? 'Any priority', policy.ticketType ?? 'Any type'].join(' · ')}
+                      {[
+                        policy.priority ?? 'Any priority',
+                        policy.ticketType ? TICKET_TYPE_LABELS[policy.ticketType] : 'Any type',
+                        categoryName(policy.categoryId),
+                      ].join(' · ')}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{policy.calendar.name}</td>
                     <td className="px-3 py-2">{policy.firstResponseMinutes} min</td>
@@ -60,6 +101,16 @@ export default function AdminSlaPage() {
                       {[policy.isDefault ? 'default' : null, policy.isActive ? 'active' : 'inactive']
                         .filter(Boolean)
                         .join(' · ')}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Edit ${policy.name}`}
+                        onClick={() => setEditing({ kind: 'policy', policy })}
+                      >
+                        Edit
+                      </Button>
                     </td>
                   </tr>
                 ))}

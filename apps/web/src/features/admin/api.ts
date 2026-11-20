@@ -1,9 +1,12 @@
 import type {
   BusinessCalendar,
+  CreateSlaPolicyInput,
   InviteUserInput,
   PageMeta,
   SlaPolicy,
   UserStatus,
+  UpdateSlaPolicyInput,
+  UpsertBusinessCalendarInput,
   UserSummary,
 } from '@opsdesk/contracts';
 import { apiFetch } from '@/lib/api-client';
@@ -79,6 +82,20 @@ export function fetchSlaPolicies(): Promise<{
 
 export function fetchBusinessCalendars(): Promise<{ data: BusinessCalendar[] }> {
   return apiFetch('/business-calendars');
+}
+
+export function createSlaPolicy(input: CreateSlaPolicyInput): Promise<{ data: SlaPolicy }> {
+  return apiFetch('/sla-policies', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateSlaPolicy(id: string, input: UpdateSlaPolicyInput): Promise<{ data: SlaPolicy }> {
+  return apiFetch(`/sla-policies/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function createBusinessCalendar(
+  input: UpsertBusinessCalendarInput,
+): Promise<{ data: BusinessCalendar }> {
+  return apiFetch('/business-calendars', { method: 'POST', body: JSON.stringify(input) });
 }
 
 export function previewSla(input: {
