@@ -24,7 +24,7 @@ The public entry point for OpsDesk. The service desk behind it is authenticated 
 - **Collaboration** — public comments vs staff-only internal notes (filtered at the query layer), first-response SLA capture, requester reply auto-resume, secure attachments (magic-byte sniffing, quotas, authorized streaming downloads).
 - **Assets** — per-type tag sequences (`LAP-00421`), lifecycle state machine, transactional assignment with a single-active-assignment guarantee, warranty tracking, asset↔ticket links, "My assets".
 - **Notifications, search & dashboards** — transactional outbox → async fan-out, unread bell, ⌘K global search (Postgres FTS + trigram, permission-scoped), role-aware dashboards, append-only audit log with changed-field diffs.
-- **Auth & RBAC** — argon2id, 15-minute JWT access cookies + rotating opaque refresh tokens with reuse-detection family revocation, account lockout, per-identity rate limiting, permission + ownership + scope policies (invisible records return 404).
+- **Auth & RBAC** — argon2id, 15-minute JWT access cookies + rotating opaque refresh tokens with reuse-detection family revocation, account lockout, per-identity rate limiting, signed double-submit CSRF tokens, permission + ownership + scope policies (invisible records return 404).
 
 ### Operational maturity (Phase 2)
 - **Incidents** — severity (SEV1–SEV4), lifecycle, append-only timeline, ticket bundling with bulk requester notifications, postmortems (publish-gated closing for SEV1/SEV2) and action items.
@@ -136,6 +136,7 @@ The web app proxies `/api/v1/*` to `API_ORIGIN` (`apps/web/next.config.ts`), so 
 | `pnpm test:integration` | API integration tests against a real database |
 | `pnpm test:e2e` | Playwright end-to-end + accessibility suites |
 | `pnpm db:migrate` / `pnpm db:seed` | Apply migrations / seed reference data |
+| `pnpm --filter @opsdesk/api db:demo` | Add realistic demo activity through the running API |
 | `pnpm infra:up` / `pnpm infra:down` | Start / stop local Docker services |
 | `pnpm lint` / `pnpm format` | ESLint / Prettier |
 
@@ -158,8 +159,9 @@ The web app proxies `/api/v1/*` to `API_ORIGIN` (`apps/web/next.config.ts`), so 
 
 ```bash
 pnpm verify                            # typecheck + lint + unit + build
-pnpm --filter @opsdesk/api test:integration   # 76 integration tests
-pnpm test:e2e                          # 34 Playwright tests (E2E-1…12 + axe WCAG 2.2 AA)
+pnpm --filter @opsdesk/api test:integration   # 80 integration tests
+pnpm test:e2e                          # 36 Playwright tests (E2E-1…12 + axe WCAG 2.2 AA)
+MAILPIT_URL=http://localhost:18025 pnpm test:e2e   # if port 8025 is taken
 ```
 
 The E2E suite boots the API, worker, and web app, then exercises the full product across all four personas — including SLA pause/resume, optimistic-locking conflicts, RBAC boundaries, incident/change/workflow flows, and accessibility checks on every primary page.
