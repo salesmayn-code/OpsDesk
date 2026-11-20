@@ -66,6 +66,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
+      # The seed and the API import the compiled contracts package.
+      - run: pnpm --filter @opsdesk/contracts build
       - name: Migrate and seed
         working-directory: apps/api
         run: |
