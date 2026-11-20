@@ -121,7 +121,7 @@ Mailpit captures outbound email at http://localhost:8025.
 | Redis (BullMQ) | Render free Key Value | `render.yaml` (`noeviction`) |
 | PostgreSQL | Neon free | paste its connection string as `DATABASE_URL` on Render |
 
-The web app proxies `/api/v1/*` to `API_ORIGIN` (`apps/web/next.config.ts`), so auth cookies are first-party on the web domain. Seed once against Neon with `pnpm db:seed`. `.github/workflows/keep-warm.yml` pings the API so Render's free instance doesn't sleep. Attachments use the instance's local disk and are lost on redeploy.
+The web app proxies `/api/v1/*` to `API_ORIGIN` (`apps/web/next.config.ts`), so auth cookies are first-party on the web domain. Seed once against Neon with `pnpm db:seed`, then fill the demo with realistic activity (tickets in every state, an incident, changes, onboarding) through the live API: `DEMO_API_URL=https://<web-app> pnpm --filter @opsdesk/api db:demo`. `.github/workflows/keep-warm.yml` pings the API so Render's free instance doesn't sleep. Attachments use the instance's local disk and are lost on redeploy.
 
 ---
 
