@@ -24,6 +24,12 @@ interface NotificationInput {
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Watchers follow status changes and public replies (internal notes never reach them). */
+  private async watcherIds(tx: Prisma.TransactionClient, ticketId: string): Promise<string[]> {
+    const rows = await tx.ticketWatcher.findMany({ where: { ticketId }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
   async handleEvent(
     tx: Prisma.TransactionClient,
     type: string,
@@ -59,7 +65,7 @@ export class NotificationsService {
         const requesterId = str('requesterId');
         const assigneeId = str('assigneeId');
         const isResolved = to === 'RESOLVED';
-        const recipients = new Set<string>();
+        const recipients = new Set<string>(await this.watcherIds(tx, aggregateId));
         if (requesterId) recipients.add(requesterId);
         if (assigneeId) recipients.add(assigneeId);
         for (const recipientId of recipients) {
@@ -93,7 +99,7 @@ export class NotificationsService {
         if (visibility !== 'PUBLIC') break;
         const commentId = str('commentId') ?? aggregateId;
         const authorId = str('authorId');
-        const recipients = new Set<string>();
+        const recipients = new Set<string>(await this.watcherIds(tx, aggregateId));
         const requesterId = str('requesterId');
         const assigneeId = str('assigneeId');
         if (requesterId) recipients.add(requesterId);

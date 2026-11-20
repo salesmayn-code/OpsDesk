@@ -580,6 +580,79 @@ export class TicketsService {
     return this.getDetail(ticket.id, actor);
   }
 
+  // ───────── Watchers ─────────
+  // Watching grants visibility (tickets.policy) and update notifications, so adding
+  // someone other than yourself is a staff action (ticket:update) and is audited.
+
+  async listWatchers(idOrKey: string, actor: AuthUser) {
+    const ticket = await this.loadVisible(idOrKey, actor);
+    return this.watcherList(ticket.id);
+  }
+
+  async addWatcher(idOrKey: string, userId: string | undefined, actor: AuthUser) {
+    const ticket = await this.loadVisible(idOrKey, actor);
+    const targetId = userId ?? actor.id;
+    this.assertCanManageWatcher(targetId, actor);
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetId },
+      select: { status: true },
+    });
+    if (target?.status !== 'ACTIVE') {
+      throw errors.notFound('USER_NOT_FOUND', 'User not found or not active.');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.ticketWatcher.createMany({
+        data: [{ ticketId: ticket.id, userId: targetId }],
+        skipDuplicates: true,
+      });
+      if (count === 0) return;
+      await this.appendEvent(tx, ticket.id, actor.id, 'WATCHER_ADDED', { userId: targetId });
+      await this.audit.record(tx, {
+        action: 'ticket.watcher_added',
+        entityType: 'ticket',
+        entityId: ticket.id,
+        entityKey: ticket.key,
+        after: { userId: targetId },
+      });
+    });
+    return this.watcherList(ticket.id);
+  }
+
+  async removeWatcher(idOrKey: string, userId: string, actor: AuthUser) {
+    const ticket = await this.loadVisible(idOrKey, actor);
+    this.assertCanManageWatcher(userId, actor);
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.ticketWatcher.deleteMany({ where: { ticketId: ticket.id, userId } });
+      if (count === 0) return;
+      await this.audit.record(tx, {
+        action: 'ticket.watcher_removed',
+        entityType: 'ticket',
+        entityId: ticket.id,
+        entityKey: ticket.key,
+        before: { userId },
+      });
+    });
+    return this.watcherList(ticket.id);
+  }
+
+  private assertCanManageWatcher(targetId: string, actor: AuthUser) {
+    if (targetId !== actor.id && !actor.permissions.includes('ticket:update')) {
+      throw errors.forbidden('Only IT staff can add or remove other watchers.');
+    }
+  }
+
+  private async watcherList(ticketId: string) {
+    const rows = await this.prisma.ticketWatcher.findMany({
+      where: { ticketId },
+      orderBy: { addedAt: 'asc' },
+    });
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: rows.map((row) => row.userId) } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    return rows.flatMap((row) => users.filter((user) => user.id === row.userId));
+  }
+
   // ───────── Helpers ─────────
 
   /** Public so Comments/Attachments modules reuse the same visibility policy. */

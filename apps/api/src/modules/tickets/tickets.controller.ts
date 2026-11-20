@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -14,6 +15,7 @@ import {
   TicketQueryDto,
   TransitionTicketDto,
   UpdateTicketDto,
+  WatcherInputDto,
 } from './tickets.dto';
 import { TicketsService } from './tickets.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -83,5 +85,31 @@ export class TicketsController {
     @CurrentUser() actor: AuthUser,
   ) {
     return { data: await this.tickets.assign(id, body, actor) };
+  }
+
+  @Get(':id/watchers')
+  @RequirePermissions('ticket:view')
+  async watchers(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return { data: await this.tickets.listWatchers(id, actor) };
+  }
+
+  @Post(':id/watchers')
+  @RequirePermissions('ticket:view')
+  async addWatcher(
+    @Param('id') id: string,
+    @Body() body: WatcherInputDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return { data: await this.tickets.addWatcher(id, body.userId, actor) };
+  }
+
+  @Delete(':id/watchers/:userId')
+  @RequirePermissions('ticket:view')
+  async removeWatcher(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return { data: await this.tickets.removeWatcher(id, userId, actor) };
   }
 }

@@ -46,6 +46,25 @@ export function updateTicket(id: string, input: UpdateTicketInput): Promise<{ da
   });
 }
 
+export type WatcherDto = { id: string; firstName: string; lastName: string; email: string };
+
+export function fetchWatchers(ticketId: string): Promise<{ data: WatcherDto[] }> {
+  return apiFetch(`/tickets/${encodeURIComponent(ticketId)}/watchers`);
+}
+
+export function addWatcher(ticketId: string, userId?: string): Promise<{ data: WatcherDto[] }> {
+  return apiFetch(`/tickets/${encodeURIComponent(ticketId)}/watchers`, {
+    method: 'POST',
+    body: JSON.stringify(userId ? { userId } : {}),
+  });
+}
+
+export function removeWatcher(ticketId: string, userId: string): Promise<{ data: WatcherDto[] }> {
+  return apiFetch(`/tickets/${encodeURIComponent(ticketId)}/watchers/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
 export function assignTicket(id: string, input: AssignTicketInput): Promise<{ data: TicketDetail }> {
   return apiFetch(`/tickets/${id}/assignment`, {
     method: 'POST',

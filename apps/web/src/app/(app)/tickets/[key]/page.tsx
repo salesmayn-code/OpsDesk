@@ -22,6 +22,7 @@ import { useKbSuggestions, useLinkArticle, useTicketArticles } from '@/features/
 import { useIncidentOptions, useLinkTicketIncident } from '@/features/incidents/hooks';
 import { TICKET_TYPE_LABELS } from '@/features/tickets/labels';
 import { TicketEditor } from '@/features/tickets/ticket-editor';
+import { WatchersCard } from '@/features/tickets/watchers-card';
 import { PriorityBadge, StatusBadge } from '@/components/status-badge';
 import { ConflictBanner } from '@/components/conflict-banner';
 import { Button } from '@/components/ui/button';
@@ -490,6 +491,8 @@ export default function TicketDetailPage() {
           ) : null}
         </div>
       </div>
+
+      <WatchersCard ticketId={ticket.id} canManage={canEdit} />
 
       <div className="rounded-card border border-border bg-card p-6">
         <h2 className="text-title font-semibold">Activity</h2>
