@@ -8,6 +8,7 @@ import type {
   TicketDetail,
   TicketSummary,
   TransitionTicketInput,
+  UpdateTicketInput,
 } from '@opsdesk/contracts';
 import { apiFetch } from '@/lib/api-client';
 
@@ -34,6 +35,13 @@ export function transitionTicket(
 ): Promise<{ data: TicketDetail }> {
   return apiFetch(`/tickets/${id}/transitions`, {
     method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateTicket(id: string, input: UpdateTicketInput): Promise<{ data: TicketDetail }> {
+  return apiFetch(`/tickets/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
     body: JSON.stringify(input),
   });
 }

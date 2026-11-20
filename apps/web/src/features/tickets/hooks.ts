@@ -1,6 +1,11 @@
 'use client';
 
-import type { AssignTicketInput, CreateTicketInput, TransitionTicketInput } from '@opsdesk/contracts';
+import type {
+  AssignTicketInput,
+  CreateTicketInput,
+  TransitionTicketInput,
+  UpdateTicketInput,
+} from '@opsdesk/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignTicket,
@@ -15,6 +20,7 @@ import {
   fetchTicketSla,
   fetchTickets,
   transitionTicket,
+  updateTicket,
   uploadAttachment,
   type Paginated,
 } from './api';
@@ -129,6 +135,12 @@ function useTicketMutation<TInput>(
 export function useTransitionTicket() {
   return useTicketMutation<TransitionTicketInput & { ticketId: string }>(
     ({ ticketId, ...body }) => transitionTicket(ticketId, body),
+  );
+}
+
+export function useUpdateTicket() {
+  return useTicketMutation<UpdateTicketInput & { ticketId: string }>(({ ticketId, ...body }) =>
+    updateTicket(ticketId, body),
   );
 }
 

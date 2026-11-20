@@ -8,6 +8,7 @@ import { ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import {
   useAssignTicket,
+  useCategories,
   useResolutionCodes,
   useTicket,
   useTicketSla,
@@ -20,6 +21,7 @@ import { useToast } from '@/components/toast';
 import { useKbSuggestions, useLinkArticle, useTicketArticles } from '@/features/knowledge/hooks';
 import { useIncidentOptions, useLinkTicketIncident } from '@/features/incidents/hooks';
 import { TICKET_TYPE_LABELS } from '@/features/tickets/labels';
+import { TicketEditor } from '@/features/tickets/ticket-editor';
 import { PriorityBadge, StatusBadge } from '@/components/status-badge';
 import { ConflictBanner } from '@/components/conflict-banner';
 import { Button } from '@/components/ui/button';
@@ -53,6 +55,7 @@ export default function TicketDetailPage() {
   const resolutionCodes = useResolutionCodes();
   const transition = useTransitionTicket();
   const assign = useAssignTicket();
+  const categories = useCategories();
 
   const [pending, setPending] = useState<TicketStatus | null>(null);
   const [reason, setReason] = useState('');
@@ -126,6 +129,12 @@ export default function TicketDetailPage() {
     user.teamIds.includes(ticket.team.id) &&
     ticket.assignee?.id !== user.id &&
     !['CLOSED', 'CANCELLED', 'RESOLVED'].includes(ticket.status);
+
+  const isTerminal = ticket.status === 'CLOSED' || ticket.status === 'CANCELLED';
+  const canEdit = Boolean(ticket.can?.update);
+  const canReassign = Boolean(ticket.can?.assign || ticket.can?.reassign);
+  const category = categories.data?.data.find((c) => c.id === ticket.categoryId);
+  const subcategory = category?.children?.find((c) => c.id === ticket.subcategoryId);
 
   const primary = ticket.allowedTransitions?.[0];
   const others = (ticket.allowedTransitions ?? []).filter((status) => status !== primary);
@@ -323,6 +332,12 @@ export default function TicketDetailPage() {
             <dd>{ticket.team?.name ?? '—'}</dd>
           </div>
           <div>
+            <dt className="text-xs text-muted-foreground">Category</dt>
+            <dd>
+              {category ? `${category.name}${subcategory ? ` / ${subcategory.name}` : ''}` : '—'}
+            </dd>
+          </div>
+          <div>
             <dt className="text-xs text-muted-foreground">Created</dt>
             <dd>{formatDate(ticket.createdAt)}</dd>
           </div>
@@ -340,6 +355,16 @@ export default function TicketDetailPage() {
           ) : null}
         </dl>
       </div>
+
+      {!isTerminal && (canEdit || canReassign) ? (
+        <TicketEditor
+          key={ticket.version}
+          ticket={ticket}
+          canUpdate={canEdit}
+          canAssign={canReassign}
+          onError={onMutationError}
+        />
+      ) : null}
 
       <div className="rounded-card border border-border bg-card p-6">
         <h2 className="text-title font-semibold">Description</h2>
@@ -471,7 +496,7 @@ export default function TicketDetailPage() {
         <div className="mt-4">
           <ActivityTimeline ticketId={ticket.id} />
         </div>
-        {ticket.status === 'CLOSED' || ticket.status === 'CANCELLED' ? (
+        {isTerminal ? (
           <p className="mt-6 text-sm text-muted-foreground">
             This ticket is closed and read-only.
           </p>

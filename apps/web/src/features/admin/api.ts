@@ -25,6 +25,11 @@ export interface DepartmentDto {
 export interface TeamDto {
   id: string;
   name: string;
+  description: string | null;
+  email: string | null;
+  leadId: string | null;
+  managerId: string | null;
+  archivedAt: string | null;
   memberCount: number;
 }
 
