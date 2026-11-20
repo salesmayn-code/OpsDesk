@@ -1,23 +1,37 @@
 'use client';
 
-import type { CreateSlaPolicyInput, InviteUserInput } from '@opsdesk/contracts';
+import type {
+  CreateSlaPolicyInput,
+  InviteUserInput,
+  SetTeamMembersInput,
+  UpdateDepartmentInput,
+  UpdateTeamInput,
+  UpdateUserInput,
+} from '@opsdesk/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   changeUserStatus,
   createAssetType,
   createBusinessCalendar,
   createCategory,
+  createDepartment,
   createSlaPolicy,
+  createTeam,
   fetchBusinessCalendars,
   fetchDepartments,
   fetchRoles,
   fetchSlaPolicies,
+  fetchTeam,
   fetchTeams,
   fetchUsers,
   inviteUser,
   previewSla,
+  setTeamMembers,
   updateCategory,
+  updateDepartment,
   updateSlaPolicy,
+  updateTeam,
+  updateUser,
   updateUserRoles,
 } from './api';
 
@@ -130,4 +144,49 @@ export function useUpdateCategory() {
 
 export function useCreateAssetType() {
   return useCatalogMutation<{ name: string; tagPrefix: string }>((input) => createAssetType(input));
+}
+
+/** Org changes ripple into team pickers, user lists and dashboards, so refresh all admin data. */
+function useOrgMutation<TInput>(mutationFn: (input: TInput) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin'] }),
+  });
+}
+
+export function useTeam(id: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'teams', id],
+    queryFn: () => fetchTeam(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateTeam() {
+  return useOrgMutation(createTeam);
+}
+
+export function useUpdateTeam() {
+  return useOrgMutation(({ id, ...input }: UpdateTeamInput & { id: string }) => updateTeam(id, input));
+}
+
+export function useSetTeamMembers() {
+  return useOrgMutation(({ id, ...input }: SetTeamMembersInput & { id: string }) =>
+    setTeamMembers(id, input),
+  );
+}
+
+export function useCreateDepartment() {
+  return useOrgMutation(createDepartment);
+}
+
+export function useUpdateDepartment() {
+  return useOrgMutation(({ id, ...input }: UpdateDepartmentInput & { id: string }) =>
+    updateDepartment(id, input),
+  );
+}
+
+export function useUpdateUser() {
+  return useOrgMutation(({ id, ...input }: UpdateUserInput & { id: string }) => updateUser(id, input));
 }

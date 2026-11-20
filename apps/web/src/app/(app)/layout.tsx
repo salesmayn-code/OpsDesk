@@ -45,6 +45,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     title: 'Administration',
     items: [
       { href: '/admin/users', label: 'Users', permission: 'user:view' },
+      { href: '/admin/org', label: 'Teams & departments', permission: 'team:manage' },
       { href: '/admin/catalog', label: 'Catalog', permission: 'category:manage' },
       { href: '/admin/sla', label: 'SLA policies', permission: 'sla:manage' },
       { href: '/reports', label: 'Reports', permission: 'reports:view' },

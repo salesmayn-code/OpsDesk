@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import type { UserStatus } from '@opsdesk/contracts';
+import type { UserStatus, UserSummary } from '@opsdesk/contracts';
 import { ApiClientError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -11,6 +11,7 @@ import {
   useInviteUser,
   useRoles,
   useTeams,
+  useUpdateUser,
   useUpdateUserRoles,
 } from '@/features/admin/hooks';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ export default function AdminUsersPage() {
   const [rolesFor, setRolesFor] = useState<{ id: string; name: string; roleIds: string[] } | null>(
     null,
   );
+  const [orgFor, setOrgFor] = useState<UserSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const query = new URLSearchParams();
@@ -83,6 +85,7 @@ export default function AdminUsersPage() {
   const invite = useInviteUser();
   const changeStatus = useChangeUserStatus();
   const updateRoles = useUpdateUserRoles();
+  const updateUser = useUpdateUser();
   const { toast } = useToast();
 
   const onError = (mutationError: unknown) =>
@@ -183,6 +186,16 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap items-center gap-2">
+                      {can('user:update') ? (
+                        <button
+                          type="button"
+                          className="text-xs text-primary hover:underline"
+                          aria-label={`Edit organisation for ${user.firstName} ${user.lastName}`}
+                          onClick={() => setOrgFor(user)}
+                        >
+                          Organisation
+                        </button>
+                      ) : null}
                       {can('role:manage') ? (
                         <button
                           type="button"
@@ -330,6 +343,61 @@ export default function AdminUsersPage() {
                 {invite.isPending ? 'Sending…' : 'Send invitation'}
               </Button>
               <Button type="button" variant="ghost" onClick={() => setInviteOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {orgFor ? (
+        <Modal title={`Organisation · ${orgFor.firstName} ${orgFor.lastName}`} onClose={() => setOrgFor(null)}>
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              updateUser.mutate(
+                {
+                  id: orgFor.id,
+                  jobTitle: String(form.get('jobTitle') || '').trim() || null,
+                  departmentId: String(form.get('departmentId') || '') || null,
+                },
+                {
+                  onSuccess: () => {
+                    setOrgFor(null);
+                    toast('User updated');
+                  },
+                  onError,
+                },
+              );
+            }}
+          >
+            <Field label="Job title" htmlFor="org-title">
+              <Input id="org-title" name="jobTitle" maxLength={120} defaultValue={orgFor.jobTitle ?? ''} />
+            </Field>
+            <Field label="Department" htmlFor="org-department" hint="Support teams are managed under Teams & departments.">
+              <select
+                id="org-department"
+                name="departmentId"
+                defaultValue={orgFor.departmentId ?? ''}
+                className="h-9 w-full rounded-control border border-border bg-card px-2 text-sm"
+              >
+                <option value="">No department</option>
+                {(departments.data?.data ?? [])
+                  .filter((d) => !d.archivedAt || d.id === orgFor.departmentId)
+                  .map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" disabled={updateUser.isPending}>
+                Save
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setOrgFor(null)}>
                 Cancel
               </Button>
             </div>

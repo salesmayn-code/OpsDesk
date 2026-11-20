@@ -1,6 +1,12 @@
 import type {
   BusinessCalendar,
+  CreateDepartmentInput,
   CreateSlaPolicyInput,
+  CreateTeamInput,
+  SetTeamMembersInput,
+  UpdateDepartmentInput,
+  UpdateTeamInput,
+  UpdateUserInput,
   InviteUserInput,
   PageMeta,
   SlaPolicy,
@@ -22,6 +28,8 @@ export interface DepartmentDto {
   id: string;
   name: string;
   code: string;
+  headId: string | null;
+  archivedAt: string | null;
   memberCount: number;
 }
 
@@ -57,6 +65,41 @@ export function fetchDepartments(): Promise<{ data: DepartmentDto[] }> {
 
 export function fetchTeams(): Promise<{ data: TeamDto[] }> {
   return apiFetch('/teams');
+}
+
+export interface TeamDetailDto extends TeamDto {
+  members: { id: string; firstName: string; lastName: string }[];
+}
+
+export function fetchTeam(id: string): Promise<{ data: TeamDetailDto }> {
+  return apiFetch(`/teams/${id}`);
+}
+
+export function createTeam(input: CreateTeamInput): Promise<{ data: TeamDto }> {
+  return apiFetch('/teams', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateTeam(id: string, input: UpdateTeamInput): Promise<{ data: TeamDto }> {
+  return apiFetch(`/teams/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function setTeamMembers(id: string, input: SetTeamMembersInput): Promise<{ data: TeamDetailDto }> {
+  return apiFetch(`/teams/${id}/members`, { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export function createDepartment(input: CreateDepartmentInput): Promise<{ data: DepartmentDto }> {
+  return apiFetch('/departments', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateDepartment(
+  id: string,
+  input: UpdateDepartmentInput,
+): Promise<{ data: DepartmentDto }> {
+  return apiFetch(`/departments/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export function updateUser(id: string, input: UpdateUserInput): Promise<{ data: UserSummary }> {
+  return apiFetch(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
 export function inviteUser(input: InviteUserInput): Promise<{ data: UserSummary }> {
