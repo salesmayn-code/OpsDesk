@@ -8,6 +8,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import type { IncomingMessage } from 'node:http';
 import { validateEnv, type Env } from './config/env';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -103,6 +104,6 @@ import { HealthModule } from './health/health.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
+    consumer.apply(RequestIdMiddleware, CsrfMiddleware).forRoutes('*');
   }
 }

@@ -18,6 +18,17 @@ export class ApiClientError extends Error {
 
 let refreshPromise: Promise<boolean> | null = null;
 
+/** Double-submit CSRF token (TRD §12): the API sets a readable cookie, we echo it as a header. */
+function csrfHeader(method: string | undefined): Record<string, string> {
+  if (!method || ['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) return {};
+  if (typeof document === 'undefined') return {};
+  const token = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith('opsdesk_csrf='))
+    ?.slice('opsdesk_csrf='.length);
+  return token ? { 'X-CSRF-Token': decodeURIComponent(token) } : {};
+}
+
 async function request(path: string, options: RequestInit): Promise<Response> {
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   return fetch(`${API_URL}/api/v1${path}`, {
@@ -25,6 +36,7 @@ async function request(path: string, options: RequestInit): Promise<Response> {
     credentials: 'include',
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...csrfHeader(options.method),
       ...(options.headers ?? {}),
     },
   });
@@ -35,6 +47,7 @@ async function refreshSession(): Promise<boolean> {
     const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
+      headers: csrfHeader('POST'),
     });
     return res.ok;
   } catch {
@@ -45,6 +58,12 @@ async function refreshSession(): Promise<boolean> {
 /** Fetch wrapper: cookie auth, refresh-on-401 (single-flight), normalized errors. */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response = await request(path, options);
+
+  // First mutation in a fresh tab may predate the CSRF cookie; the 403 response sets it.
+  if (response.status === 403) {
+    const body = (await response.clone().json().catch(() => null)) as ApiError | null;
+    if (body?.code === 'CSRF_INVALID') response = await request(path, options);
+  }
 
   if (response.status === 401 && path !== '/auth/refresh' && path !== '/auth/login') {
     refreshPromise ??= refreshSession().finally(() => {
